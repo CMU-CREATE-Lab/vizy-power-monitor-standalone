@@ -1,0 +1,16 @@
+#!/usr/bin/python3
+
+import os, subprocess
+
+script_dir = os.path.dirname(os.path.realpath(__file__))
+os.chdir(script_dir)
+
+cmd = "/usr/bin/python3 vizy_power_monitor.py"
+
+ret = subprocess.run(f"pgrep -x -f '{cmd}'", shell=True, capture_output=True).returncode
+
+if ret == 0:
+    print("vizy_power_monitor.py already running")
+else:
+    print(f"Starting vizy_power_monitor: nohup {cmd} &")
+    os.popen(f"nohup {cmd} &")
