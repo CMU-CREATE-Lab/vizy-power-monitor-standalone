@@ -7,4 +7,4 @@ Installation:
     cd ~
     git clone https://github.com/CMU-CREATE-Lab/vizy-power-monitor-standalone.git
     vizy-power-monitor-standalone/install.py
-    raspi-config / interface / turn on i2c
+
