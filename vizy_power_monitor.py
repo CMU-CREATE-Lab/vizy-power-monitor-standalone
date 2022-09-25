@@ -1,4 +1,5 @@
 #!/bin/python3
+import getpass
 import time
 import os
 import signal
@@ -18,11 +19,23 @@ FAN_MAX = 5
 FAN_WINDOW = 30 # seconds
 FAN_ATTEN = 0.25
 
-class PowerMonitor:
+script_dir = os.path.dirname(os.path.realpath(__file__))
+os.chdir(script_dir)
+logfile = open("log.txt", "a")
 
+def log(msg):
+    logfile.write(f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')} {msg}\n")
+    logfile.flush()
+
+log(f"Running {os.path.realpath(__file__)} as user {getpass.getuser()}")
+if getpass.getuser() != "root":
+    log(f"ERROR:  must run as root")
+
+class PowerMonitor:
     def __init__(self):
-        print("Running Vizy Power Monitor...")
+        log("Running Vizy Power Monitor...")
         self.count = 0
+        self.last_fan_speed = 0
         self.fan_speed = (0, 0)
         self.avg_fan_speed = 0
         self.run = True
@@ -59,7 +72,7 @@ class PowerMonitor:
             self.v.led_background(*WHITE)
         self.v.fan(0)
 
-        print("Exiting Vizy Power Monitor")
+        log("Exiting Vizy Power Monitor")
 
 
     def handle_power_button(self):
@@ -105,16 +118,27 @@ class PowerMonitor:
         # Be more responsive to increases in fan speed than decreases.
         if fan_speed>self.fan_speed[0]: 
             self.fan_speed = (fan_speed, t)
+            self.set_fan(fan_speed)
             self.v.fan(fan_speed)
         # Only decrease fan speed if our window expires.
         elif t-self.fan_speed[1]>FAN_WINDOW:
             self.fan_speed = (fan_speed, t)
+            self.set_fan(fan_speed)
             self.v.fan(fan_speed)
 
+    def set_fan(self, speed):
+        self.v.fan(speed)
+        if speed != self.last_fan_speed:
+            self.last_fan_speed = speed
+            log(f"CPU temp {get_cpu_temp():.1f}, changing fan speed to {speed}")
 
-if __name__ == "__main__":
-
+try:
     PowerMonitor()
+except Exception as e:
+    log(f"Received exceptiopn {e}, exiting")    
+finally:
+    log("Exiting")
+
 
 
 
