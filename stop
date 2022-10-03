@@ -2,12 +2,17 @@
 
 import os, subprocess
 
+if os.geteuid() != 0:
+    print("Need to run as root.  Aborting")
+    exit()
+
 cmd = "/usr/bin/python3 vizy_power_monitor.py"
 
-if subprocess.run(f"pkill -x -f '{cmd}'", shell=True).returncode == 0:
+returncode = subprocess.run(f"pkill -x -f '{cmd}'", shell=True).returncode
+if returncode == 0:
     print("Stopped vizy_power_monitor")
 else:
-    print("vizy_power_monitor already stopped")
+    print(f"vizy_power_monitor already stopped (returncode = {returncode})")
 
 
 

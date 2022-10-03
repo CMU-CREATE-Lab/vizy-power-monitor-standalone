@@ -4,7 +4,7 @@ import time
 import os
 import signal
 from datetime import datetime  
-from vizypowerboard import VizyPowerBoard, get_cpu_temp
+from vizypowerboard import VizyPowerBoard, get_cpu_temp, DIPSWITCH_POWER_DEFAULT_ON, DIPSWITCH_1_BOOT_MODE
 
 BRIGHTNESS = 0x30
 WHITE = [BRIGHTNESS//3, BRIGHTNESS//3, BRIGHTNESS//3]
@@ -32,6 +32,26 @@ if getpass.getuser() != "root":
     log(f"ERROR:  must run as root")
 
 class PowerMonitor:
+    def set_dip_switches(self):
+        desired_dip_switches = sum([
+            # DIPSWITCH_EXT_BUTTON         Don't use remote power button
+            # DIPSWITCH_MUTE_BUZZER        Don't mute buzzer
+            # DIPSWITCH_NO_BG_LED          Don't disable background LED
+
+            # DIPSWITCH_POWER_DEFAULT_OFF  Don't keep power off when 12V applied
+            DIPSWITCH_POWER_DEFAULT_ON,    # Automatically turn on when 12V applied
+            # DIPSWITCH_POWER_SWITCH       Don't keep "last selected power state" when 12V applied
+            # DIPSWITCH_POWER_PLUG         Don't disable power button for turning off vizy
+
+            DIPSWITCH_1_BOOT_MODE,         # Just one boot mode
+        ])
+        actual_dip_switches = self.v.dip_switches()
+        if actual_dip_switches == desired_dip_switches:
+            log(f"Dip switches already correct (0x{actual_dip_switches:x})")
+        else:
+            log(f"Changing dip switches to 0x{desired_dip_switches:x}")
+            self.v.dip_switches(desired_dip_switches)
+
     def __init__(self):
         log("Running Vizy Power Monitor...")
         self.count = 0
@@ -48,13 +68,18 @@ class PowerMonitor:
 
         self.v = VizyPowerBoard()
 
+        self.set_dip_switches()
+
         # Set time using battery-backed RTC time on Vizy Power Board,
         # unless it's already been set by systemd-timesyncd.  
         # So we set the time based on the RTC value.  If we can't sync
         # in the future because we don't have a network connection, 
         # we have the battery-backed RTC value to fall back on. 
         if not os.path.exists("/run/systemd/timesync/synchronized"):
-            self.v.rtc_set_system_datetime() 
+            log("Setting datetime from RTC")
+            self.v.rtc_set_system_datetime()
+        else:
+            log("datetime already set via ntp")
 
         # Set background LED to yellow (finished booting).
         self.v.led_background(*YELLOW)

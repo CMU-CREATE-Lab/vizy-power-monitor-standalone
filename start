@@ -2,6 +2,10 @@
 
 import datetime, os, subprocess
 
+if os.geteuid() != 0:
+    print("Need to run as root.  Aborting")
+    exit()
+
 script_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(script_dir)
 logfile = open("log.txt", "a")
